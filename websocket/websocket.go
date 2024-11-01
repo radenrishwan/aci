@@ -1,11 +1,8 @@
 package websocket
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
 	"io"
 
-	"github.com/radenrishwan/aci/chttp"
 	"github.com/radenrishwan/aci/cwebsocket"
 )
 
@@ -20,37 +17,9 @@ func NewWebsocket(option *WSOption) (ws Websocket) {
 }
 
 func (ws *Websocket) Upgrade(conn io.ReadWriteCloser) (client Client, err error) {
-	key := ""
-
-	request, err := chttp.NewRequest(conn)
+	err = cwebsocket.Upgrade(conn)
 	if err != nil {
-		return client, err
-	}
-
-	if _, ok := request.Headers["sec-websocket-key"]; ok {
-		key = request.Headers["sec-websocket-key"]
-	}
-
-	if _, ok := request.Headers["Sec-WebSocket-Key"]; ok {
-		key = request.Headers["Sec-WebSocket-Key"]
-	}
-
-	if key == "" {
-		return client, cwebsocket.NewWsError("Sec-WebSocket-Key is required", "")
-	}
-
-	acceptKey := generateWebsocketKey(key)
-
-	_, err = conn.Write([]byte(
-		"HTTP/1.1 101 Switching Protocols\r\n" +
-			"Upgrade: websocket\r\n" +
-			"Connection: Upgrade\r\n" +
-			"Sec-WebSocket-Accept: " + acceptKey + "\r\n" +
-			"\r\n",
-	))
-
-	if err != nil {
-		return client, cwebsocket.NewWsError("Error while upgrading connection : ", err.Error())
+		return Client{}, err
 	}
 
 	client.Conn = conn
@@ -94,12 +63,4 @@ func (client *Client) Read() ([]byte, error) {
 
 func (client *Client) Close(reason string, code int) error {
 	return cwebsocket.Close(client.Conn, reason, code)
-}
-
-func generateWebsocketKey(key string) string {
-	sha := sha1.New()
-	sha.Write([]byte(key))
-	sha.Write([]byte(MAGIC_KEY))
-
-	return base64.StdEncoding.EncodeToString(sha.Sum(nil))
 }

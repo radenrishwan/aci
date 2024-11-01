@@ -1,9 +1,51 @@
 package cwebsocket
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/binary"
 	"io"
+
+	"github.com/radenrishwan/aci/chttp"
 )
+
+// upgrade connection to websocket
+func Upgrade(conn io.ReadWriteCloser) (err error) {
+	key := ""
+
+	request, err := chttp.NewRequest(conn)
+	if err != nil {
+		return NewWsError("Error parsing request", err.Error())
+	}
+
+	if _, ok := request.Headers["sec-websocket-key"]; ok {
+		key = request.Headers["sec-websocket-key"]
+	}
+
+	if _, ok := request.Headers["Sec-WebSocket-Key"]; ok {
+		key = request.Headers["Sec-WebSocket-Key"]
+	}
+
+	if key == "" {
+		return NewWsError("Sec-WebSocket-Key is required", "")
+	}
+
+	acceptKey := GenerateWebsocketKey(key)
+
+	_, err = conn.Write([]byte(
+		"HTTP/1.1 101 Switching Protocols\r\n" +
+			"Upgrade: websocket\r\n" +
+			"Connection: Upgrade\r\n" +
+			"Sec-WebSocket-Accept: " + acceptKey + "\r\n" +
+			"\r\n",
+	))
+
+	if err != nil {
+		return NewWsError("Error while upgrading connection : ", err.Error())
+	}
+
+	return nil
+}
 
 // write a websocket frame to the connection
 func Write(conn io.Writer, msg []byte) error {
@@ -32,6 +74,23 @@ func WriteWithMessageType(conn io.Writer, msg string, messageType MessageType) e
 	}
 
 	return nil
+}
+
+// get the payload from the connection, if you want to get the raw frame, use DecodeFrame
+func Read(conn io.Reader) ([]byte, error) {
+	buf := make([]byte, 1024)
+
+	n, err := conn.Read(buf)
+	if err != nil {
+		return nil, NewWsError("Error reading message : ", err.Error())
+	}
+
+	f, err := DecodeFrame(buf[:n])
+	if err != nil {
+		return nil, NewWsError("Error decoding frame : ", err.Error())
+	}
+
+	return f.Payload, nil
 }
 
 // encode a websocket frame to be sent over the connection
@@ -160,4 +219,12 @@ func Close(conn io.WriteCloser, reason string, code int) error {
 	}
 
 	return nil
+}
+
+func GenerateWebsocketKey(key string) string {
+	sha := sha1.New()
+	sha.Write([]byte(key))
+	sha.Write([]byte(MAGIC_KEY))
+
+	return base64.StdEncoding.EncodeToString(sha.Sum(nil))
 }
