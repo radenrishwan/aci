@@ -9,7 +9,7 @@ import (
 type Context struct {
 	context.Context
 	Request *Request
-	conn    io.ReadWriteCloser
+	Conn    io.ReadWriteCloser
 }
 
 type Handler func(c Context) *Response
