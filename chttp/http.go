@@ -94,7 +94,7 @@ func (r *Router) Execute(conn io.ReadWriteCloser) error {
 		resp := r.NotFound(Context{
 			Context: context.Background(),
 			Request: &req,
-			conn:    conn,
+			Conn:    conn,
 		})
 
 		resp.Write(conn)
@@ -109,7 +109,7 @@ func (r *Router) Execute(conn io.ReadWriteCloser) error {
 	resp := handler(Context{
 		Context: context.Background(),
 		Request: &req,
-		conn:    conn,
+		Conn:    conn,
 	})
 
 	// write response
