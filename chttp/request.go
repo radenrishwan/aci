@@ -15,7 +15,7 @@ type Request struct {
 	Args    map[string]string
 	Headers map[string]string
 	Cookie  map[string]string
-	Conn    io.Reader
+	Conn    io.ReadWriteCloser
 }
 
 func (r *Request) GetHeader(key string) string {
