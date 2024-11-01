@@ -26,7 +26,7 @@ func (r *Request) GetArgs(arg string) string {
 	return r.Args[arg]
 }
 
-func NewRequest(conn io.Reader) (request Request, err error) {
+func NewRequest(conn io.ReadWriteCloser) (request Request, err error) {
 	buf := make([]byte, 1024)
 	request.Conn = conn
 	request.Context = context.Background()

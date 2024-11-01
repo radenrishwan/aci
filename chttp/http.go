@@ -74,7 +74,7 @@ func (r *Router) HandleFunc(path string, handler Handler) *Router {
 	return r
 }
 
-func (r *Router) Execute(conn io.ReadWriter) error {
+func (r *Router) Execute(conn io.ReadWriteCloser) error {
 	// parse request
 	req, err := NewRequest(conn)
 	if err != nil {
