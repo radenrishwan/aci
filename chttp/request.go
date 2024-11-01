@@ -1,13 +1,11 @@
 package chttp
 
 import (
-	"context"
 	"io"
 	"strings"
 )
 
 type Request struct {
-	Context context.Context
 	Method  string
 	Path    string
 	Version string
@@ -15,7 +13,6 @@ type Request struct {
 	Args    map[string]string
 	Headers map[string]string
 	Cookie  map[string]string
-	Conn    io.ReadWriteCloser
 }
 
 func (r *Request) GetHeader(key string) string {
@@ -28,8 +25,6 @@ func (r *Request) GetArgs(arg string) string {
 
 func NewRequest(conn io.ReadWriteCloser) (request Request, err error) {
 	buf := make([]byte, 1024)
-	request.Conn = conn
-	request.Context = context.Background()
 
 	_, err = conn.Read(buf)
 	if err != nil {

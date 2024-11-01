@@ -1,11 +1,18 @@
 package chttp
 
 import (
+	"context"
 	"io"
 	"strings"
 )
 
-type Handler func(r Request) *Response
+type Context struct {
+	context.Context
+	Request *Request
+	conn    io.ReadWriteCloser
+}
+
+type Handler func(c Context) *Response
 
 type Route struct {
 	Handler map[string]Handler
@@ -33,8 +40,8 @@ func NewRouter() *Router {
 
 	return &Router{
 		Handler: make(map[string]Route),
-		NotFound: func(r Request) *Response {
-			return NewTextResponse("404 Not Found")
+		NotFound: func(c Context) *Response {
+			return NewTextResponse("404 Not Found").SetCode(404)
 		},
 	}
 }
@@ -84,7 +91,11 @@ func (r *Router) Execute(conn io.ReadWriteCloser) error {
 	// get route
 	route, ok := r.Handler[req.Path]
 	if !ok {
-		resp := r.NotFound(req)
+		resp := r.NotFound(Context{
+			Context: context.Background(),
+			Request: &req,
+			conn:    conn,
+		})
 
 		resp.Write(conn)
 
@@ -95,7 +106,11 @@ func (r *Router) Execute(conn io.ReadWriteCloser) error {
 	handler := route.getHandler(req.Method)
 
 	// call handler
-	resp := handler(req)
+	resp := handler(Context{
+		Context: context.Background(),
+		Request: &req,
+		conn:    conn,
+	})
 
 	// write response
 	resp.Write(conn)
