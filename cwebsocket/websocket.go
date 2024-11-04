@@ -14,9 +14,80 @@ func Upgrade(conn io.ReadWriteCloser) (err error) {
 	key := ""
 
 	request, err := chttp.NewRequest(conn)
+
 	if err != nil {
 		return NewWsError("Error parsing request", err.Error())
 	}
+
+	if _, ok := request.Headers["sec-websocket-key"]; ok {
+		key = request.Headers["sec-websocket-key"]
+	}
+
+	if _, ok := request.Headers["Sec-WebSocket-Key"]; ok {
+		key = request.Headers["Sec-WebSocket-Key"]
+	}
+
+	if key == "" {
+		return NewWsError("Sec-WebSocket-Key is required", "")
+	}
+
+	acceptKey := GenerateWebsocketKey(key)
+
+	_, err = conn.Write([]byte(
+		"HTTP/1.1 101 Switching Protocols\r\n" +
+			"Upgrade: websocket\r\n" +
+			"Connection: Upgrade\r\n" +
+			"Sec-WebSocket-Accept: " + acceptKey + "\r\n" +
+			"\r\n",
+	))
+
+	if err != nil {
+		return NewWsError("Error while upgrading connection : ", err.Error())
+	}
+
+	return nil
+}
+
+func UpgradeFromBuffer(conn io.Writer, buff []byte) (err error) {
+	key := ""
+
+	request, err := chttp.NewRequestFromBuffer(buff)
+
+	if err != nil {
+		return NewWsError("Error parsing request", err.Error())
+	}
+
+	if _, ok := request.Headers["sec-websocket-key"]; ok {
+		key = request.Headers["sec-websocket-key"]
+	}
+
+	if _, ok := request.Headers["Sec-WebSocket-Key"]; ok {
+		key = request.Headers["Sec-WebSocket-Key"]
+	}
+
+	if key == "" {
+		return NewWsError("Sec-WebSocket-Key is required", "")
+	}
+
+	acceptKey := GenerateWebsocketKey(key)
+
+	_, err = conn.Write([]byte(
+		"HTTP/1.1 101 Switching Protocols\r\n" +
+			"Upgrade: websocket\r\n" +
+			"Connection: Upgrade\r\n" +
+			"Sec-WebSocket-Accept: " + acceptKey + "\r\n" +
+			"\r\n",
+	))
+
+	if err != nil {
+		return NewWsError("Error while upgrading connection : ", err.Error())
+	}
+
+	return nil
+}
+
+func UpgradeFromRequest(conn io.Writer, request *chttp.Request) (err error) {
+	key := ""
 
 	if _, ok := request.Headers["sec-websocket-key"]; ok {
 		key = request.Headers["sec-websocket-key"]

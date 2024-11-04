@@ -61,6 +61,37 @@ func NewRequest(conn io.ReadWriteCloser) (request Request, err error) {
 	return request, err
 }
 
+func NewRequestFromBuffer(buf []byte) (request Request, err error) {
+	stringBuf := string(buf)
+
+	sp := strings.Split(stringBuf, "\r\n")
+
+	requestLine := strings.Split(sp[0], " ")
+	request.Method = strings.ToUpper(requestLine[0])
+	request.Version = requestLine[2]
+
+	request.Headers = make(map[string]string)
+	for i := 1; i < len(sp); i++ {
+		if sp[i] == "" {
+			request.Body = sp[i+1]
+			break
+		}
+
+		header := strings.Split(sp[i], ": ")
+		request.Headers[header[0]] = header[1]
+	}
+
+	// check if cookie exists in Headers
+	if request.Headers["Cookie"] != "" {
+		request.Cookie = parseCookie(request.Headers["Cookie"])
+	}
+
+	// parse args
+	request.Path, request.Args = parseArgs(requestLine[1])
+
+	return request, err
+}
+
 func parseCookie(cookie string) map[string]string {
 	cookieMap := make(map[string]string)
 	cookies := strings.Split(cookie, "; ")

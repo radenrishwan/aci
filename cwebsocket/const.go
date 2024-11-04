@@ -1,5 +1,7 @@
 package cwebsocket
 
+import "fmt"
+
 const MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 type MessageType int
@@ -43,11 +45,11 @@ type WsError struct {
 }
 
 func (e *WsError) Error() string {
-	return e.Msg
+	return fmt.Sprintf("%s: %s", e.Msg, e.Reason)
 }
 
 func NewWsError(msg string, reason string) *WsError {
-	return &WsError{Msg: msg}
+	return &WsError{Msg: msg, Reason: reason}
 }
 
 type WsFrame struct {

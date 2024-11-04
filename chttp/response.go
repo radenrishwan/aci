@@ -56,7 +56,7 @@ func NewJSONResponse(json string) *Response {
 	}
 }
 
-func (r *Response) AddHeader(key, value string) *Response {
+func (r *Response) SetHeader(key, value string) *Response {
 	r.Headers[key] = value
 
 	return r
